@@ -1,0 +1,40 @@
+{
+  "name": "projeto-multidisciplinar",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+"scripts": {
+  "dev": "vite",
+  "build": "tsc && vite build"
+},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shadowvoidh/Projeto-Multidiscplinar.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shadowvoidh/Projeto-Multidiscplinar/issues"
+  },
+  "homepage": "https://github.com/shadowvoidh/Projeto-Multidiscplinar#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "mysql2": "^3.23.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.0"
+  }
+}
