@@ -39,7 +39,7 @@ Projeto-Multidisciplinar/
 ├── assets/            # Logos, ícones e recursos visuais estáticos
 ├── dashboard/          # Bundles compilados pelo Vite (main.js, login.js)
 ├── error/              # Tela personalizada de Erro
-├── includes/           # Páginas PHP do sistema (home.php, db.php, etc.)
+├── includes/           # Páginas PHP do sistema (home.php,homeanon.php, etc.)
 ├── schemas/            # Banco de Dado de Exemplo   
 ├── script              #Codigos de Js, Que não são Compilado
 ├
