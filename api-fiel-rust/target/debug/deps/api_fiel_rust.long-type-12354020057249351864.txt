@@ -1,0 +1,2 @@
+fn(State<Pool<MySql>>, axum::extract::Query<FiltroEstudantes>) -> impl Future<Output = Result<axum::Json<Vec<Estudante>>, (axum::http::StatusCode, std::string::String)>> {listar_estudantes}
+fn(State<Pool<MySql>>, axum::extract::Query<FiltroEstudantes>) -> impl Future<Output = Result<axum::Json<Vec<Estudante>>, (axum::http::StatusCode, std::string::String)>> {listar_estudantes}: Handler<_, _>

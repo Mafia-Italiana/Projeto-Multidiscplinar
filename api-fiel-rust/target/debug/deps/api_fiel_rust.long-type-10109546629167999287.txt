@@ -1,0 +1,2 @@
+fn(State<Pool<MySql>>, axum::extract::Path<std::string::String>, axum::Json<Estudante>) -> impl Future<Output = Result<axum::http::StatusCode, (axum::http::StatusCode, std::string::String)>> {atualizar_estudante}
+fn(State<Pool<MySql>>, axum::extract::Path<std::string::String>, axum::Json<Estudante>) -> impl Future<Output = Result<axum::http::StatusCode, (axum::http::StatusCode, std::string::String)>> {atualizar_estudante}: Handler<_, _>

@@ -14,6 +14,9 @@ O **FIEL** é um sistema web integrado para gestão acadêmica e administrativa 
 ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-00000F?style=for-the-badge&logo=mysql&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
+
+
 
 ---
 
@@ -32,17 +35,13 @@ O **FIEL** é um sistema web integrado para gestão acadêmica e administrativa 
 ```text
 Projeto-Multidisciplinar/
 ├── analytics/         # Script em Python 
+├── api-fiel-rust/     # Back-End Em Rust
 ├── assets/            # Logos, ícones e recursos visuais estáticos
-├
-├
 ├── dashboard/          # Bundles compilados pelo Vite (main.js, login.js)
-├
-├
+├── error/              # Tela personalizada de Erro
 ├── includes/           # Páginas PHP do sistema (home.php, db.php, etc.)
-├
-├
 ├── schemas/            # Banco de Dado de Exemplo   
-├
+├── script              #Codigos de Js, Que não são Compilado
 ├
 ├── src/                # Código-fonte React/TypeScript (App.tsx, main.tsx)
 ├
@@ -50,7 +49,5 @@ Projeto-Multidisciplinar/
 ├── login.php           # Tela de Login
 ├── logout.php          # Arquivo Php para Encerar Sessão 
 ├── .htaccess           # Configurações do servidor Apache e tratamento de erros
-├── 404.php             # Tela personalizada de página não encontrada
-├── 500.php             # Tela personalizada de erro interno do servidor
 ├── vite.config.ts      # Configuração de build do Vite
 └── README.md           # Documentação do repositório
