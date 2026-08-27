@@ -3,3 +3,5 @@ node_modules/
 dashboard/*.map
 
 test/
+
+analytics/logs/

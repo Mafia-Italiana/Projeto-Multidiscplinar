@@ -12,9 +12,21 @@ interface Estudante {
   nome_responsavel?: string;
 }
 
+interface NotaTrimestre {
+  trimestre1: number | string;
+  trimestre2: number | string;
+  trimestre3: number | string;
+}
+
+interface NotasAluno {
+  disciplina: string;
+  notas: NotaTrimestre;
+}
+
 export default function App() {
- 
-  const [telaAtual, setTelaAtual] = useState<'home' | 'ficha' | 'editar' | 'cadastrar'>('home');
+  const [telaAtual, setTelaAtual] = useState<
+  'home' | 'ficha' | 'editar' | 'cadastrar' | 'notas' | 'frequencia'
+>('home');
   const [alunoSelecionado, setAlunoSelecionado] = useState<Estudante | null>(null);
   const [estudantes, setEstudantes] = useState<Estudante[]>([]);
   const [filtros, setFiltros] = useState({ matricula: '', nome: '', turma: '', turno: '' });
@@ -22,6 +34,18 @@ export default function App() {
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [totalRegistros, setTotalRegistros] = useState(0);
   const [formEditar, setFormEditar] = useState<Estudante | null>(null);
+  const [alunoNotas, setAlunoNotas] = useState<Estudante | null>(null);
+  const [mensagem, setMensagem] = useState('');
+  const [erro, setErro] = useState('');
+
+  const [notasTrimestrais, setNotasTrimestrais] = useState<NotasAluno[]>([
+    { disciplina: 'Português', notas: { trimestre1: '', trimestre2: '', trimestre3: '' } },
+    { disciplina: 'Matemática', notas: { trimestre1: '', trimestre2: '', trimestre3: '' } },
+    { disciplina: 'História', notas: { trimestre1: '', trimestre2: '', trimestre3: '' } },
+    { disciplina: 'Geografia', notas: { trimestre1: '', trimestre2: '', trimestre3: '' } },
+    { disciplina: 'Ciências', notas: { trimestre1: '', trimestre2: '', trimestre3: '' } },
+  ]);
+
   const [formCadastrar, setFormCadastrar] = useState({
     matricula: '',
     nome: '',
@@ -33,66 +57,155 @@ export default function App() {
     telefone: ''
   });
 
-  const [mensagem, setMensagem] = useState('');
-  const [erro, setErro] = useState('');
-  const carregarEstudantes = async (pag = 1) => {
-    try {
-      const query = new URLSearchParams({ ...filtros, pagina: pag.toString(), action: 'listar' });
-      const res = await fetch(`api.php?${query.toString()}`);
+  // Função unificada para carregar estudantes
+const carregarEstudantes = async (pag: number = pagina) => {
+  try {
+    const params = new URLSearchParams({
+      matricula: filtros.matricula || '',
+      nome: filtros.nome || '',
+      turma: filtros.turma || '',
+      turno: filtros.turno || '',
+      pagina: pag.toString(),
+      limite: '10'
+    });
+
+    const res = await fetch(`http://127.0.0.1:3000/api/estudantes?${params.toString()}`);
+
+    if (res.ok) {
       const data = await res.json();
-      setEstudantes(data.estudantes || []);
-      setTotalPaginas(data.totalPaginas || 1);
-      setPagina(data.paginaAtual || 1);
-      setTotalRegistros(data.totalRegistros || 0);
-    } catch {
+      
+      // Obtém o array completo enviado pela API
+      const listaCompleta: Estudante[] = data.dados || data.estudantes || (Array.isArray(data) ? data : []);
+      
+      const limite = 10;
+      const totalReg = data.totalRegistros || listaCompleta.length;
+      const totalPag = data.totalPaginas || Math.ceil(totalReg / limite) || 1;
+
+      // Se o backend NÃO paginou (retornou tudo), faz o corte (slice) localmente
+      const inicio = (pag - 1) * limite;
+      const listaPaginada = data.totalPaginas 
+        ? listaCompleta 
+        : listaCompleta.slice(inicio, inicio + limite);
+
+      setEstudantes(listaPaginada);
+      setTotalPaginas(totalPag);
+      setTotalRegistros(totalReg);
+    } else {
       setErro('Erro ao carregar a lista de estudantes.');
     }
-  };
-
+  } catch {
+    setErro('Erro ao conectar com a API em Rust.');
+  }
+};
+  // Dispara a busca sempre que a página mudar
   useEffect(() => {
-    if (telaAtual === 'home') {
-      carregarEstudantes(pagina);
-    }
-  }, [telaAtual, pagina]);
+    carregarEstudantes(pagina);
+  }, [pagina]);
 
-
-  const abrirFicha = async (matricula: string) => {
-    const res = await fetch(`api.php?action=obter&matricula=${matricula}`);
-    const data = await res.json();
-    setAlunoSelecionado(data);
-    setTelaAtual('ficha');
-  };
-
-  const abrirEditar = async (matricula: string) => {
-    setMensagem('');
-    setErro('');
-    const res = await fetch(`api.php?action=obter&matricula=${matricula}`);
-    const data = await res.json();
-    setFormEditar(data);
-    setTelaAtual('editar');
-  };
-
-  const salvarEdicao = async (e: React.FormEvent) => {
+  // Handler para busca de filtros
+  const handleBuscar = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formEditar) return;
-
-    setMensagem('');
-    setErro('');
-
-    const res = await fetch('api.php?action=salvar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formEditar)
-    });
-    
-    const resData = await res.json();
-    if (resData.sucesso) {
-      setMensagem('Dados do estudante atualizados com sucesso!');
+    if (pagina === 1) {
+      carregarEstudantes(1);
     } else {
-      setErro(resData.erro || 'Erro ao atualizar os dados.');
+      setPagina(1);
     }
   };
 
+  const abrirFicha = (matricula: string) => {
+    const aluno = estudantes.find((e) => e.matricula === matricula);
+    if (aluno) {
+      setAlunoSelecionado(aluno);
+      setTelaAtual('ficha');
+    } else {
+      setErro('Estudante não encontrado.');
+    }
+  };
+
+  const abrirEditar = (matricula: string) => {
+    setMensagem('');
+    setErro('');
+    const aluno = estudantes.find((e) => e.matricula === matricula);
+    if (aluno) {
+      setFormEditar(aluno);
+      setTelaAtual('editar');
+    } else {
+      setErro('Estudante não encontrado.');
+    }
+  };
+
+const abrirNotas = async (aluno: Estudante) => {
+  setAlunoNotas(aluno);
+  setMensagem('');
+  setErro('');
+
+  const disciplinasPadrao: NotasAluno[] = [
+    { disciplina: 'Português', notas: { trimestre1: '', trimestre2: '', trimestre3: '' } },
+    { disciplina: 'Matemática', notas: { trimestre1: '', trimestre2: '', trimestre3: '' } },
+    { disciplina: 'História', notas: { trimestre1: '', trimestre2: '', trimestre3: '' } },
+    { disciplina: 'Geografia', notas: { trimestre1: '', trimestre2: '', trimestre3: '' } },
+    { disciplina: 'Ciências', notas: { trimestre1: '', trimestre2: '', trimestre3: '' } },
+  ];
+
+  try {
+    const res = await fetch(`http://127.0.0.1:3000/api/notas/${aluno.matricula}`);
+
+    // Garante que a requisição HTTP retornou status 200 (OK)
+    if (res.ok) {
+      const data = await res.json();
+
+      // Suporta tanto o formato envelopado { sucesso: true, notas: [...] }
+      // quanto o retorno direto de um array de notas [...] da API Rust
+      const notasRecebidas = Array.isArray(data) ? data : data?.notas;
+
+      if (Array.isArray(notasRecebidas) && notasRecebidas.length > 0) {
+        setNotasTrimestrais(notasRecebidas);
+      } else {
+        setNotasTrimestrais(disciplinasPadrao);
+      }
+    } else {
+      // Se der 404 (sem notas cadastradas ainda), usa a estrutura padrão
+      setNotasTrimestrais(disciplinasPadrao);
+    }
+  } catch (err) {
+    // Caso a API esteja offline ou ocorra erro de rede
+    setNotasTrimestrais(disciplinasPadrao);
+  }
+
+  setTelaAtual('notas');
+};
+
+const salvarEdicao = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  const estudante = formEditar as any;
+
+  if (!estudante || !estudante.matricula) {
+    alert("Identificador do aluno não encontrado.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`http://127.0.0.1:3000/api/estudantes/${estudante.matricula}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(estudante),
+    });
+
+    if (res.ok) {
+      alert("Dados do aluno atualizados com sucesso!");
+      setTelaAtual('home');
+      carregarEstudantes();
+    } else {
+      const erroApi = await res.text();
+      alert(`Erro ao salvar: ${erroApi}`);
+    }
+  } catch (error) {
+    alert("Erro de conexão ao tentar salvar as alterações.");
+  }
+};
 
   const salvarCadastro = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +213,7 @@ export default function App() {
     setErro('');
 
     try {
-      const res = await fetch('api.php?action=cadastrar', {
+      const res = await fetch('http://127.0.0.1:3000/api/estudantes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formCadastrar)
@@ -121,6 +234,67 @@ export default function App() {
     }
   };
 
+const salvarNotas = async () => {
+  if (!alunoNotas || !alunoNotas.matricula) {
+    alert("Aluno não identificado.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`http://127.0.0.1:3000/api/notas/${alunoNotas.matricula}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(notasTrimestrais),
+    });
+
+    if (res.ok) {
+      alert("Notas salvas com sucesso!");
+    } else {
+      const txt = await res.text();
+      alert(`Erro ao salvar notas: ${txt}`);
+    }
+  } catch (err) {
+    alert("Erro de conexão ao salvar notas.");
+  }
+};
+
+  const handleNotaChange = (index: number, campo: keyof NotaTrimestre, valor: string) => {
+    setNotasTrimestrais(prevNotas =>
+      prevNotas.map((item, i) =>
+        i === index
+          ? { ...item, notas: { ...item.notas, [campo]: valor } }
+          : item
+      )
+    );
+  };
+
+const carregarNotas = async (matricula: string) => {
+  try {
+    const res = await fetch(`http://127.0.0.1:3000/api/notas/${matricula}`);
+    if (res.ok) {
+      const dados = await res.json();
+      if (dados && dados.length > 0) {
+        setNotasTrimestrais(dados);
+      }
+    }
+  } catch (err) {
+    console.error("Erro ao carregar notas:", err);
+  }
+}
+
+  const calcularMedia = (t1: number | string, t2: number | string, t3: number | string) => {
+    const notasValidas = [t1, t2, t3]
+      .filter(val => val !== '' && val !== null && val !== undefined)
+      .map(val => parseFloat(val as string));
+
+    if (notasValidas.length === 0) return '-';
+
+    const soma = notasValidas.reduce((acc, curr) => acc + (isNaN(curr) ? 0 : curr), 0);
+    return (soma / notasValidas.length).toFixed(1);
+  };
+
   const limparFiltros = () => {
     setFiltros({ matricula: '', nome: '', turma: '', turno: '' });
     setPagina(1);
@@ -131,10 +305,10 @@ export default function App() {
       <header className="bg-[#07314f] px-[10%] py-3.5 flex justify-between items-center shadow-md">
         <button type="button" onClick={() => { setMensagem(''); setErro(''); setTelaAtual('home'); }} className="flex items-center">
           <img 
-  src="../assets/logo.jpeg" 
-  alt="Logo La Salle" 
-  className="max-h-12 w-auto object-contain select-none pointer-events-none" 
-/>
+            src="../assets/logo.jpeg" 
+            alt="Logo La Salle" 
+            className="max-h-12 w-auto object-contain select-none pointer-events-none" 
+          />
         </button>
 
         <div className="flex items-center gap-3">
@@ -163,17 +337,14 @@ export default function App() {
         </div>
       </header>
 
-
       <main className="flex-1 max-w-[1100px] w-full mx-auto my-[30px] px-5 space-y-6">
-        
-
         {telaAtual === 'home' && (
           <>
             <section className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
               <h2 className="text-[#002b49] text-lg font-bold pb-2 border-b-2 border-[#ffc72c] mb-5">
                 Consulta de Estudante
               </h2>
-              <form onSubmit={(e) => { e.preventDefault(); carregarEstudantes(1); }}>
+              <form onSubmit={handleBuscar}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="flex flex-col">
                     <label className="text-xs font-bold text-slate-700 mb-1">Matrícula</label>
@@ -232,7 +403,6 @@ export default function App() {
               </form>
             </section>
 
-
             <section className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
               <h2 className="text-[#002b49] text-lg font-bold pb-2 border-b-2 border-[#ffc72c] mb-4">
                 Dados Cadastrais do Estudante
@@ -258,13 +428,35 @@ export default function App() {
                           <td className="p-3 text-slate-700">{aluno.turma}</td>
                           <td className="p-3 text-slate-700">{aluno.turno || 'Manhã'}</td>
                           <td className="p-3 text-slate-700">{aluno.situacao}</td>
-                          <td className="p-3 whitespace-nowrap">
-                            <button type="button" onClick={() => abrirFicha(aluno.matricula)} className="bg-[#07314f] hover:bg-[#002b49] text-white px-2.5 py-1 rounded text-[0.75rem] font-bold inline-block mr-1 transition-colors">
+                          <td className="p-3 whitespace-nowrap space-x-1">
+                            <button 
+                              onClick={() => abrirFicha(aluno.matricula)} 
+                              className="bg-[#002b49] text-white px-2.5 py-1 rounded text-xs font-semibold hover:bg-[#001f35]"
+                            >
                               Ficha
                             </button>
-                            <button type="button" onClick={() => abrirEditar(aluno.matricula)} className="bg-[#ffc72c] hover:bg-[#e0ad22] text-[#07314f] px-2.5 py-1 rounded text-[0.75rem] font-bold inline-block transition-colors">
+                            <button 
+                              onClick={() => abrirEditar(aluno.matricula)}
+                              className="bg-[#ffc72c] text-[#07314f] px-2.5 py-1 rounded text-xs font-semibold hover:bg-[#e5b327]"
+                            >
                               Editar
                             </button>
+                            <button 
+                              onClick={() => abrirNotas(aluno)}
+                              className="bg-emerald-600 text-white px-2.5 py-1 rounded text-xs font-semibold hover:bg-emerald-700"
+                            >
+                              Notas
+                            </button>
+                          <button 
+  onClick={() => {
+    setAlunoSelecionado(aluno);
+    setTelaAtual('frequencia');
+  }}
+  className="bg-purple-600 text-white px-2.5 py-1 rounded text-xs font-semibold hover:bg-purple-700"
+>
+  Faltas
+</button>
+
                           </td>
                         </tr>
                       ))
@@ -303,7 +495,6 @@ export default function App() {
           </>
         )}
 
-
         {telaAtual === 'ficha' && alunoSelecionado && (
           <section className="bg-white p-6 md:p-8 rounded-lg shadow-sm border border-slate-200 max-w-[650px] mx-auto">
             <h2 className="text-[#002b49] text-lg font-bold pb-2 border-b-2 border-[#ffc72c] mb-5">
@@ -324,7 +515,6 @@ export default function App() {
             </button>
           </section>
         )}
-
 
         {telaAtual === 'editar' && formEditar && (
           <section className="bg-white p-6 md:p-8 rounded-lg shadow-sm border border-slate-200 max-w-[650px] mx-auto">
@@ -425,6 +615,98 @@ export default function App() {
           </section>
         )}
 
+        {telaAtual === 'notas' && alunoNotas && (
+          <section className="bg-white p-6 md:p-8 rounded-lg shadow-sm border border-slate-200 max-w-[850px] mx-auto">
+            <h2 className="text-[#002b49] text-lg font-bold pb-2 border-b-2 border-[#ffc72c] mb-2">
+              Lançamento de Notas Trimestrais
+            </h2>
+            <div className="mb-6 p-3 bg-slate-50 rounded border border-slate-200 text-xs">
+              <p><strong>Estudante:</strong> {alunoNotas.nome} | <strong>Matrícula:</strong> {alunoNotas.matricula} | <strong>Turma:</strong> {alunoNotas.turma}</p>
+            </div>
+
+            {mensagem && <div className="bg-[#e8f8e8] text-green-800 p-3.5 rounded mb-4 border border-green-200 text-xs font-medium">{mensagem}</div>}
+            {erro && <div className="bg-[#ffe6e6] text-red-700 p-3.5 rounded mb-4 border border-red-200 text-xs font-medium">{erro}</div>}
+
+            <form onSubmit={salvarNotas}>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs mb-5">
+                  <thead>
+                    <tr className="bg-[#f0f4f8] text-[#002b49] font-bold">
+                      <th className="p-3 border-b border-slate-200">Disciplina</th>
+                      <th className="p-3 border-b border-slate-200 text-center">1º Trimestre</th>
+                      <th className="p-3 border-b border-slate-200 text-center">2º Trimestre</th>
+                      <th className="p-3 border-b border-slate-200 text-center">3º Trimestre</th>
+                      <th className="p-3 border-b border-slate-200 text-center">Média Parcial</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {notasTrimestrais && notasTrimestrais.length > 0 ? (
+                      notasTrimestrais.map((item, index) => (
+                        <tr key={item.disciplina || index} className="border-b hover:bg-slate-50">
+                          <td className="p-3 font-semibold text-slate-700">{item.disciplina}</td>
+                          <td className="p-3 text-center">
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              max="10"
+                              className="w-16 p-1 border border-slate-300 rounded text-center text-slate-800 font-medium bg-white focus:outline-none focus:ring-2 focus:ring-[#002b49]"
+                              value={item.notas?.trimestre1 ?? ''}
+                              onChange={(e) => handleNotaChange(index, 'trimestre1', e.target.value)}
+                            />
+                          </td>
+                          <td className="p-3 text-center">
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              max="10"
+                              className="w-16 p-1 border border-slate-300 rounded text-center text-slate-800 font-medium bg-white focus:outline-none focus:ring-2 focus:ring-[#002b49]"
+                              value={item.notas?.trimestre2 ?? ''}
+                              onChange={(e) => handleNotaChange(index, 'trimestre2', e.target.value)}
+                            />
+                          </td>
+                          <td className="p-3 text-center">
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              max="10"
+                              className="w-16 p-1 border border-slate-300 rounded text-center text-slate-800 font-medium bg-white focus:outline-none focus:ring-2 focus:ring-[#002b49]"
+                              value={item.notas?.trimestre3 ?? ''}
+                              onChange={(e) => handleNotaChange(index, 'trimestre3', e.target.value)}
+                            />
+                          </td>
+                          <td className="p-3 font-bold text-center text-[#002b49]">
+                            {calcularMedia(item.notas?.trimestre1, item.notas?.trimestre2, item.notas?.trimestre3)}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="p-4 text-center text-slate-500">
+                          Nenhuma disciplina encontrada.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex gap-3">
+                <button type="submit" className="bg-[#07314f] hover:bg-[#002b49] text-white font-bold text-xs px-5 py-2.5 rounded transition-colors shadow-sm">
+                  Salvar Notas
+                </button>
+                <button type="button" onClick={() => { setMensagem(''); setErro(''); setTelaAtual('home'); }} className="bg-[#6c757d] hover:bg-[#5a6268] text-white font-bold text-xs px-5 py-2.5 rounded transition-colors">
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </section>
+)}
+  {telaAtual === 'frequencia' && alunoSelecionado && (
+  <PainelFrequencia matricula={alunoSelecionado.matricula} /> 
+)}
         {telaAtual === 'cadastrar' && (
           <section className="bg-white p-6 md:p-8 rounded-lg shadow-sm border border-slate-200 max-w-[800px] mx-auto">
             <h2 className="text-[#002b49] text-lg font-bold pb-2 border-b-2 border-[#ffc72c] mb-5">
@@ -545,6 +827,122 @@ export default function App() {
           &copy; 2026 FIEL - Projeto Multidisciplinar Lassalista. Todos os direitos reservados.
         </p>
       </footer>
+    </div>
+  );
+}
+
+interface DisciplinaFaltas {
+  disciplina: string;
+  faltas: {
+    faltas_t1: number;
+    faltas_t2: number;
+    faltas_t3: number;
+  };
+}
+
+const disciplinasIniciais = [
+  "Português", "Matemática", "História", "Geografia", "Ciências"
+];
+
+export function PainelFrequencia({ matricula }: { matricula: string }) {
+  const [frequencia, setFrequencia] = useState<DisciplinaFaltas[]>(
+    disciplinasIniciais.map((d) => ({
+      disciplina: d,
+      faltas: { faltas_t1: 0, faltas_t2: 0, faltas_t3: 0 },
+    }))
+  );
+
+  useEffect(() => {
+    fetch(`http://127.0.0.1:3000/api/frequencia/${matricula}`)
+      .then((res) => res.json())
+      .then((dados) => {
+        if (dados && dados.length > 0) {
+          setFrequencia(dados);
+        }
+      });
+  }, [matricula]);
+
+  const handleChange = (index: number, campo: string, valor: string) => {
+    const num = parseInt(valor) || 0;
+    const novasFaltas = [...frequencia];
+    novasFaltas[index].faltas = {
+      ...novasFaltas[index].faltas,
+      [campo]: num >= 0 ? num : 0,
+    };
+    setFrequencia(novasFaltas);
+  };
+
+  const salvarFrequencia = async () => {
+    try {
+      const res = await fetch(`http://127.0.0.1:3000/api/frequencia/${matricula}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(frequencia),
+      });
+      if (res.ok) alert("Frequência salva com sucesso!");
+    } catch (err) {
+      alert("Erro ao salvar frequência.");
+    }
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h2 className="text-xl font-bold mb-4 text-blue-900">Lançamento de Faltas Trimestrais</h2>
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="bg-gray-100 border-b">
+            <th className="p-2">Disciplina</th>
+            <th className="p-2">1º Trimestre</th>
+            <th className="p-2">2º Trimestre</th>
+            <th className="p-2">3º Trimestre</th>
+            <th className="p-2">Total de Faltas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {frequencia.map((item, index) => {
+            const total = item.faltas.faltas_t1 + item.faltas.faltas_t2 + item.faltas.faltas_t3;
+            return (
+              <tr key={item.disciplina} className="border-b">
+                <td className="p-2 font-medium">{item.disciplina}</td>
+                <td className="p-2">
+                  <input
+                    type="number"
+                    min="0"
+                    value={item.faltas.faltas_t1}
+                    onChange={(e) => handleChange(index, "faltas_t1", e.target.value)}
+                    className="w-16 p-1 border rounded text-center"
+                  />
+                </td>
+                <td className="p-2">
+                  <input
+                    type="number"
+                    min="0"
+                    value={item.faltas.faltas_t2}
+                    onChange={(e) => handleChange(index, "faltas_t2", e.target.value)}
+                    className="w-16 p-1 border rounded text-center"
+                  />
+                </td>
+                <td className="p-2">
+                  <input
+                    type="number"
+                    min="0"
+                    value={item.faltas.faltas_t3}
+                    onChange={(e) => handleChange(index, "faltas_t3", e.target.value)}
+                    className="w-16 p-1 border rounded text-center"
+                  />
+                </td>
+                <td className="p-2 font-bold text-red-600">{total}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <button
+        onClick={salvarFrequencia}
+        className="mt-4 bg-blue-900 text-white px-4 py-2 rounded font-bold hover:bg-blue-800"
+      >
+        Salvar Frequência
+      </button>
     </div>
   );
 }

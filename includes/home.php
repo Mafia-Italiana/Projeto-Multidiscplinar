@@ -9,8 +9,11 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-[#f4f6f9]">
   <div id="root"></div>
-  <script type="module" src="../dashboard/main.js"></script>
+
+<script type="module" src="../dashboard/main.js"></script>
+
 </body>
 </html>

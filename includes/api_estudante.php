@@ -34,3 +34,5 @@ try {
     http_response_code(500);
     echo json_encode(['erro' => 'Erro no banco de dados: ' . $e->getMessage()]);
 }
+
+?>

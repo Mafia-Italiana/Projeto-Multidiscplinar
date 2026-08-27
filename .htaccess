@@ -1,5 +1,5 @@
-ErrorDocument 404 /fiel/404.php
-ErrorDocument 500 /fiel/500.php
+ErrorDocument 404 /fiel/error/404.php
+ErrorDocument 500 /fiel/error/500.php
 
 
 Options -Indexes

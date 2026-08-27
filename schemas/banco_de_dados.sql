@@ -55,12 +55,12 @@ INSERT INTO estudantes (matricula, nome, turma, turno, situacao, data_nascimento
 ('20261310', 'Aluno Terceiro Médio G3', '3º Ano - Ensino Médio', 'Noite', 'Ativo', '2008-11-11', 'Responsável Aluno 3MJ', 'aluno3mj@aluno.lasalle.br', '(41) 98807-0010');
 
 
-DROP TABLE IF EXISTS usuarios;
-
-CREATE TABLE usuarios (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    usuario VARCHAR(50) NOT NULL UNIQUE,
-    senha VARCHAR(255) NOT NULL
-);
-
-INSERT INTO usuarios (usuario, senha) VALUES ('adm', 'lasalle123');
+CREATE TABLE IF NOT EXISTS `notas` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `matricula` VARCHAR(50) NOT NULL,
+  `disciplina` VARCHAR(100) NOT NULL,
+  `trimestre1` DECIMAL(4,2) DEFAULT 0.00,
+  `trimestre2` DECIMAL(4,2) DEFAULT 0.00,
+  `trimestre3` DECIMAL(4,2) DEFAULT 0.00,
+  UNIQUE KEY `aluno_disciplina` (`matricula`, `disciplina`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
